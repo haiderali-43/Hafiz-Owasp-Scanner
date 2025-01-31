@@ -20,9 +20,9 @@ def show_banner():
 
 # List of required tools for each OWASP Top 10 category
 REQUIRED_TOOLS = {
-    'A01:2021-Broken Access Control': ['sqlmap', 'nmap', 'NoSQL-Exploiter'],
+    'A01:2021-Broken Access Control': ['sqlmap', 'nmap',],
     'A02:2021-Cryptographic Failures': ['openssl', 'nmap'],
-    'A03:2021-Injection': ['sqlmap', 'NoSQL-Exploiter', 'nmap'],
+    'A03:2021-Injection': ['sqlmap', 'nmap'],
     'A04:2021-Insecure Design': ['nmap'],
     'A05:2021-Security Misconfiguration': ['nikto', 'nmap'],
     'A06:2021-Vulnerable and Outdated Components': ['nmap', 'retire.js'],
@@ -65,7 +65,7 @@ def check_broken_access_control(url):
     try:
         # Run a simple SQLMap test to check for broken access control
         subprocess.run(["sqlmap", "-u", url, "--level=5", "--risk=3", "--batch", "--crawl=1"], check=True)
-        subprocess.run(["NoSQL-Exploiter", "-u", url], check=True)
+        subprocess.run(["sqlmap",url], check=True)
     except subprocess.CalledProcessError:
         print("[!] Error in detecting Broken Access Control.")
 
@@ -81,7 +81,7 @@ def check_injection(url):
     print("[+] Checking for SQL/NoSQL Injection...")
     try:
         subprocess.run(["sqlmap", "-u", url, "--level=5", "--risk=3", "--batch"], check=True)
-        subprocess.run(["NoSQL-Exploiter", "-u", url], check=True)
+        subprocess.run(["sqlmap",url], check=True)
     except subprocess.CalledProcessError:
         print("[!] Error in detecting Injection vulnerabilities.")
 
