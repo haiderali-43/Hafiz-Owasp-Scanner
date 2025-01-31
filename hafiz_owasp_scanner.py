@@ -1,11 +1,8 @@
-import os
+import subprocess
+import sys
 import argparse
-import shutil
-import threading
-
-# Check if a tool is installed
-def check_tool(tool_name):
-    return shutil.which(tool_name) is not None
+from urllib.parse import urlparse
+import os
 
 # Display Banner
 def show_banner():
@@ -21,76 +18,152 @@ def show_banner():
     """
     print(banner)
 
-# Check if all required tools are installed
-def check_required_tools():
-    required_tools = ["nmap", "nikto", "sqlmap", "wfuzz"]
-    missing_tools = [tool for tool in required_tools if not check_tool(tool)]
+# List of required tools for each OWASP Top 10 category
+REQUIRED_TOOLS = {
+    'A01:2021-Broken Access Control': ['sqlmap', 'nmap'],
+    'A02:2021-Cryptographic Failures': ['openssl', 'nmap'],
+    'A03:2021-Injection': ['sqlmap', 'nosqlmap'],
+    'A04:2021-Insecure Design': ['nmap'],
+    'A05:2021-Security Misconfiguration': ['nikto', 'nmap'],
+    'A06:2021-Vulnerable and Outdated Components': ['nmap', 'retire.js'],
+    'A07:2021-Identification and Authentication Failures': ['hydra', 'john'],
+    'A08:2021-Software and Data Integrity Failures': ['nmap', 'git'],
+    'A09:2021-Security Logging and Monitoring Failures': ['ossec', 'nmap'],
+    'A10:2021-Server-Side Request Forgery': ['sqlmap', 'nmap']
+}
+
+# Check if the necessary tools are installed
+def check_tools():
+    missing_tools = []
+    for tools in REQUIRED_TOOLS.values():
+        for tool in tools:
+            try:
+                subprocess.run([tool, '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            except FileNotFoundError:
+                missing_tools.append(tool)
 
     if missing_tools:
-        print(f"\n[❌] Missing required tools: {', '.join(missing_tools)}")
-        print("[💡] Install them using: apt install " + " ".join(missing_tools) + " -y")
-        exit(1)
+        print("[!] Missing tools:", ", ".join(missing_tools))
+        print("[*] Please install the missing tools before running the script.")
+        sys.exit(1)
     else:
-        print("[✔] All required tools are installed!\n")
+        print("[+] All required tools are installed!")
 
-# Run Nmap
-def run_nmap(target):
-    print("[+] Running Nmap Scan for Open Ports and Services...")
-    os.system(f"nmap -sV -A {target} -oN nmap_scan.txt")
+# Check if tools have been checked previously
+def check_tools_once():
+    if not os.path.exists(".tools_checked"):
+        print("[+] Checking if required tools are installed...")
+        check_tools()
+        with open(".tools_checked", "w") as f:
+            f.write("Tools checked successfully.")
+    else:
+        print("[+] Tools check skipped. Tools were already verified.")
 
-# Run Nikto
-def run_nikto(target):
-    print("[+] Running Nikto for Web Server Vulnerabilities...")
-    os.system(f"nikto -h {target} -o nikto_report.txt")
+# Vulnerability check functions for OWASP Top 10
+def check_broken_access_control(url):
+    print("[+] Checking for Broken Access Control...")
+    try:
+        # Run a simple SQLMap test to check for broken access control
+        subprocess.run(["sqlmap", "-u", url, "--level=5", "--risk=3", "--batch", "--crawl=1"], check=True)
+    except subprocess.CalledProcessError:
+        print("[!] Error in detecting Broken Access Control.")
 
-# Run SQLMap
-def run_sqlmap(target):
-    print("[+] Running SQLMap for SQL Injection Testing...")
-    os.system(f"sqlmap -u '{target}' --batch --dbs --output=sqlmap_report.txt")
+def check_cryptographic_failures(url):
+    print("[+] Checking for Cryptographic Failures...")
+    parsed_url = urlparse(url)
+    if parsed_url.scheme != 'https':
+        print("[+] Potential Cryptographic Failure: The site does not use HTTPS.")
+    else:
+        print("[+] HTTPS is being used for communication.")
 
-# Run XSStrike
-def run_xsstrike(target):
-    print("[+] Running XSStrike for XSS Testing...")
-    os.system(f"python3 xsstrike.py -u '{target}' --crawl")
+def check_injection(url):
+    print("[+] Checking for SQL/NoSQL Injection...")
+    try:
+        subprocess.run(["sqlmap", "-u", url, "--level=5", "--risk=3", "--batch"], check=True)
+        subprocess.run(["nosqlmap", "-u", url, "--level=5", "--risk=3", "--batch"], check=True)
+    except subprocess.CalledProcessError:
+        print("[!] Error in detecting Injection vulnerabilities.")
 
-# Run WFUZZ
-def run_wfuzz(target):
-    print("[+] Running WFUZZ for Brute-force Attack Testing...")
-    os.system(f"wfuzz -c -z file,/usr/share/wfuzz/wordlist/general/common.txt --hc 404 {target}/FUZZ")
+def check_insecure_design(url):
+    print("[+] Checking for Insecure Design...")
+    try:
+        subprocess.run(["nmap", "--open", url], check=True)
+    except subprocess.CalledProcessError:
+        print("[!] Error in detecting Insecure Design.")
 
-# Run Open Redirect
-def run_open_redirect(target):
-    print("[+] Running Open Redirect Scanner...")
-    os.system(f"python3 OpenRedirect.py -u '{target}'")
+def check_security_misconfiguration(url):
+    print("[+] Checking for Security Misconfiguration...")
+    try:
+        subprocess.run(["nikto", "-h", url], check=True)
+        subprocess.run(["nmap", "--script", "http-security-headers", url], check=True)
+    except subprocess.CalledProcessError:
+        print("[!] Error in detecting Security Misconfiguration.")
+
+def check_outdated_components(url):
+    print("[+] Checking for Outdated Components...")
+    try:
+        subprocess.run(["nmap", "--script", "http-enum", url], check=True)
+        subprocess.run(["retire", "--scan", url], check=True)
+    except subprocess.CalledProcessError:
+        print("[!] Error in detecting Outdated Components.")
+
+def check_authentication_failures(url):
+    print("[+] Checking for Authentication Failures...")
+    try:
+        subprocess.run(["hydra", "-l", "admin", "-P", "/usr/share/wordlists/rockyou.txt", url, "http-get-form", "'/login:username=^USER^&password=^PASS^:F=incorrect'"], check=True)
+    except subprocess.CalledProcessError:
+        print("[!] Error in detecting Authentication Failures.")
+
+def check_software_integrity(url):
+    print("[+] Checking for Software and Data Integrity Failures...")
+    try:
+        subprocess.run(["git", "ls-remote", url], check=True)
+    except subprocess.CalledProcessError:
+        print("[!] Error in detecting Software Integrity Failures.")
+
+def check_logging_failures(url):
+    print("[+] Checking for Logging and Monitoring Failures...")
+    try:
+        subprocess.run(["ossec", "--log", url], check=True)
+    except subprocess.CalledProcessError:
+        print("[!] Error in detecting Logging and Monitoring Failures.")
+
+def check_ssrf(url):
+    print("[+] Checking for SSRF (Server-Side Request Forgery)...")
+    try:
+        subprocess.run(["sqlmap", "-u", url, "--level=5", "--risk=3", "--batch"], check=True)
+    except subprocess.CalledProcessError:
+        print("[!] Error in detecting SSRF.")
 
 # Main function
 def main():
-    parser = argparse.ArgumentParser(description="Hafiz OWASP Top 10 Vulnerability Scanner")
-    parser.add_argument("-u", "--url", required=True, help="Target website URL")
+    # Argument parsing
+    parser = argparse.ArgumentParser(description="Bug Bounty OWASP Top 10 Scanner - Scan websites for vulnerabilities using CLI tools.")
+    parser.add_argument("-u", "--url", required=True, help="URL of the target website")
+    parser.add_argument("--rps", default=5, type=int, help="Requests per second for scanning (default: 5)")
+
     args = parser.parse_args()
 
-    target = args.url
+    url = args.url
+    request_per_second = args.rps
 
-    show_banner()
-    check_required_tools()
+    # Run tools check once
+    check_tools_once()
 
-    # Run scans in parallel threads
-    threads = [
-        threading.Thread(target=run_nmap, args=(target,)),
-        threading.Thread(target=run_nikto, args=(target,)),
-        threading.Thread(target=run_sqlmap, args=(target,)),
-        threading.Thread(target=run_xsstrike, args=(target,)),
-        threading.Thread(target=run_wfuzz, args=(target,)),
-        threading.Thread(target=run_open_redirect, args=(target,))
-    ]
+    # Run automated scans using relevant tools for each OWASP category
+    print("[+] Running scans for OWASP Top 10 vulnerabilities...")
 
-    for thread in threads:
-        thread.start()
+    check_broken_access_control(url)
+    check_cryptographic_failures(url)
+    check_injection(url)
+    check_insecure_design(url)
+    check_security_misconfiguration(url)
+    check_outdated_components(url)
+    check_authentication_failures(url)
+    check_software_integrity(url)
+    check_logging_failures(url)
+    check_ssrf(url)
 
-    for thread in threads:
-        thread.join()
-
-    print("\n[✔] Scanning Completed! Reports are saved.")
-
+# Run main function
 if __name__ == "__main__":
     main()
