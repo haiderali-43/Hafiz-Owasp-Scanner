@@ -28,7 +28,7 @@ REQUIRED_TOOLS = {
     'A06:2021-Vulnerable and Outdated Components': ['nmap', 'retire.js'],
     'A07:2021-Identification and Authentication Failures': ['hydra', 'john'],
     'A08:2021-Software and Data Integrity Failures': ['nmap', 'git'],
-    'A09:2021-Security Logging and Monitoring Failures': ['ossec', 'nmap'],
+    'A09:2021-Security Logging and Monitoring Failures': ['lynis', 'nmap'],
     'A10:2021-Server-Side Request Forgery': ['sqlmap', 'nmap']
 }
 
