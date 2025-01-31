@@ -32,7 +32,7 @@ def show_banner():
 REQUIRED_TOOLS = {
     'A01:2021-Broken Access Control': ['sqlmap', 'nmap'],
     'A02:2021-Cryptographic Failures': ['openssl', 'nmap'],
-    'A03:2021-Injection': ['sqlmap', 'nmap'],
+    'A03:2021-Injection': ['sqlmap', 'xsser', 'XXEinjector', 'commix', 'nmap'],
     'A04:2021-Insecure Design': ['nmap'],
     'A05:2021-Security Misconfiguration': ['nikto', 'nmap'],
     'A06:2021-Vulnerable and Outdated Components': ['nmap', 'retire.js'],
@@ -105,10 +105,61 @@ def check_injection(url):
     print("[+] Checking for SQL/NoSQL Injection...")
     try:
         subprocess.run(["sqlmap", "-u", url, "--level=5", "--risk=3", "--batch"], check=True)
-        logging.info("Injection check completed successfully.")
+        logging.info("SQL/NoSQL Injection check completed successfully.")
     except subprocess.CalledProcessError:
-        print("[!] Error in detecting Injection vulnerabilities.")
-        logging.error("Error in detecting Injection vulnerabilities.")
+        print("[!] Error in detecting SQL/NoSQL Injection vulnerabilities.")
+        logging.error("Error in detecting SQL/NoSQL Injection vulnerabilities.")
+
+    print("[+] Checking for HTML Injection...")
+    try:
+        subprocess.run(["xsser", "--url", url], check=True)
+        logging.info("HTML Injection check completed successfully.")
+    except subprocess.CalledProcessError:
+        print("[!] Error in detecting HTML Injection vulnerabilities.")
+        logging.error("Error in detecting HTML Injection vulnerabilities.")
+
+    print("[+] Checking for XXE Injection...")
+    try:
+        subprocess.run(["XXEinjector", "-u", url], check=True)
+        logging.info("XXE Injection check completed successfully.")
+    except subprocess.CalledProcessError:
+        print("[!] Error in detecting XXE Injection vulnerabilities.")
+        logging.error("Error in detecting XXE Injection vulnerabilities.")
+
+    print("[+] Checking for Command Injection...")
+    try:
+        subprocess.run(["commix", "--url", url], check=True)
+        logging.info("Command Injection check completed successfully.")
+    except subprocess.CalledProcessError:
+        print("[!] Error in detecting Command Injection vulnerabilities.")
+        logging.error("Error in detecting Command Injection vulnerabilities.")
+
+    print("[+] Checking for LDAP Injection...")
+    try:
+        # Placeholder for LDAP injection check (using a hypothetical tool or custom script)
+        subprocess.run(["ldap_injector_tool", "-u", url], check=True)
+        logging.info("LDAP Injection check completed successfully.")
+    except subprocess.CalledProcessError:
+        print("[!] Error in detecting LDAP Injection vulnerabilities.")
+        logging.error("Error in detecting LDAP Injection vulnerabilities.")
+
+    print("[+] Checking for XPath Injection...")
+    try:
+        # Placeholder for XPath injection check (using a hypothetical tool or custom script)
+        subprocess.run(["xpath_injector_tool", "-u", url], check=True)
+        logging.info("XPath Injection check completed successfully.")
+    except subprocess.CalledProcessError:
+        print("[!] Error in detecting XPath Injection vulnerabilities.")
+        logging.error("Error in detecting XPath Injection vulnerabilities.")
+
+def check_xss(url):
+    print("[+] Checking for Cross-Site Scripting (XSS)...")
+    try:
+        subprocess.run(["xsser", "--url", url], check=True)
+        logging.info("XSS check completed successfully.")
+    except subprocess.CalledProcessError:
+        print("[!] Error in detecting XSS vulnerabilities.")
+        logging.error("Error in detecting XSS vulnerabilities.")
 
 def check_insecure_design(url):
     print("[+] Checking for Insecure Design...")
