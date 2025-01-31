@@ -124,7 +124,7 @@ def check_software_integrity(url):
 def check_logging_failures(url):
     print("[+] Checking for Logging and Monitoring Failures...")
     try:
-        subprocess.run(["ossec", "--log", url], check=True)
+        subprocess.run(["lynis", "audit", "system"], check=True)
     except subprocess.CalledProcessError:
         print("[!] Error in detecting Logging and Monitoring Failures.")
 
